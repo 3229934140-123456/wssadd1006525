@@ -46,7 +46,7 @@ const EvidencePage: React.FC = () => {
       resolvedCount: globalOverall.resolvedCount,
       totalProgressCount: globalOverall.totalCount
     }
-  }, [evidenceList, getRepostsByIds])
+  }, [evidenceList, storeReposts])
 
   const handleCreate = () => {
     Taro.showToast({

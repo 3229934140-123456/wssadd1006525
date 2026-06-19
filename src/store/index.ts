@@ -50,6 +50,9 @@ interface AppState {
   _persist: () => void
   _hydrate: () => void
   _migrate: (data: any) => any
+  _migrateRepost: (r: any) => Repost
+  _migrateEvidence: (e: any) => EvidencePackage
+  _recalcAllEvidence: (reposts: Repost[], evidenceList: EvidencePackage[]) => EvidencePackage[]
 }
 
 const STORAGE_KEY = 'gaozong_app_state_v1'
@@ -362,8 +365,25 @@ export const useAppStore = create<AppState>((set, get) => ({
   _migrateEvidence: (e) => {
     return {
       ...e,
-      lastUpdatedAt: e.lastUpdatedAt || e.createdAt
+      lastUpdatedAt: e.lastUpdatedAt || e.createdAt,
+      problemTypes: e.problemTypes || []
     }
+  },
+
+  _recalcAllEvidence: (reposts: Repost[], evidenceList: EvidencePackage[]): EvidencePackage[] => {
+    return evidenceList.map((e) => {
+      const evidenceReposts = reposts.filter((r) => e.repostIds.includes(r.id))
+      const problemTypesSet = new Set<RepostStatus>()
+      evidenceReposts.forEach((r) => {
+        if (r.status !== 'normal') {
+          problemTypesSet.add(r.status)
+        }
+      })
+      return {
+        ...e,
+        problemTypes: Array.from(problemTypesSet)
+      }
+    })
   },
 
   _hydrate: () => {
@@ -372,12 +392,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (stored) {
         const parsed = JSON.parse(stored)
         const migrated = get()._migrate(parsed)
+        const reposts = migrated.reposts || []
+        const evidenceWithCorrectTypes = get()._recalcAllEvidence(
+          reposts,
+          migrated.evidenceList || []
+        )
         set({
           articles: migrated.articles || [],
-          reposts: migrated.reposts || [],
-          evidenceList: migrated.evidenceList || []
+          reposts,
+          evidenceList: evidenceWithCorrectTypes
         })
-        console.log('[Store] hydrated + migrated from storage')
+        console.log(
+          '[Store] hydrated + migrated + recalculated evidence.problemTypes from storage'
+        )
+        get()._persist()
         return
       }
     } catch (e) {
@@ -391,12 +419,17 @@ export const useAppStore = create<AppState>((set, get) => ({
       progressUpdatedAt: r.foundTime
     }))
 
+    const defaultEvidenceWithCorrectTypes = get()._recalcAllEvidence(
+      defaultReposts,
+      mockEvidence
+    )
+
     set({
       articles: [...mockArticles],
       reposts: defaultReposts,
-      evidenceList: [...mockEvidence]
+      evidenceList: defaultEvidenceWithCorrectTypes
     })
     get()._persist()
-    console.log('[Store] initialized with mock data + defaults')
+    console.log('[Store] initialized with mock data + defaults + recalculated types')
   }
 }))

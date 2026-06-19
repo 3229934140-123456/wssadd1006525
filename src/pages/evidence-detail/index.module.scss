@@ -310,8 +310,36 @@
 .problemTags {
   display: flex;
   flex-wrap: wrap;
-  gap: $spacing-xs;
+  gap: $spacing-sm;
   margin-bottom: $spacing-md;
+}
+
+.noProblemTip {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background-color: rgba(0, 180, 42, 0.06);
+  border-radius: $radius-md;
+  margin-bottom: $spacing-md;
+}
+
+.noProblemIcon {
+  font-size: $font-size-lg;
+  color: $color-success;
+  font-weight: $font-weight-bold;
+  width: 48rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+  border-radius: 50%;
+  background-color: rgba(0, 180, 42, 0.12);
+}
+
+.noProblemText {
+  font-size: $font-size-sm;
+  color: $color-success;
+  font-weight: $font-weight-medium;
 }
 
 .problemTag {

@@ -12,6 +12,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "strictNullChecks": true,
+    "skipLibCheck": true,
     "sourceMap": true,
     "baseUrl": "",
     "rootDir": "",

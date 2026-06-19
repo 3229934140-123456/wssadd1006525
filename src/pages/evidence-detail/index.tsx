@@ -58,6 +58,19 @@ const EvidenceDetailPage: React.FC = () => {
 
   const problemLabels = evidence?.problemTypes.map((t) => RepostStatusLabel[t]) || []
 
+  const dynamicProblemDescription = useMemo(() => {
+    if (!evidence || evidence.problemTypes.length === 0) {
+      return '当前所有转载均为正常转载，暂未发现需要维权的问题。'
+    }
+    const breakdown = evidence.problemTypes.map((type) => {
+      const count = reposts.filter((r) => r.status === type).length
+      return `${RepostStatusLabel[type]} × ${count}`
+    })
+    return `本证据包涉及 ${evidence.repostCount} 条转载，问题类型包括：${breakdown.join('、')}。已纳入维权追踪范围。`
+  }, [evidence, reposts])
+
+  const hasAnyProblem = problemLabels.length > 0
+
   const handleViewArticle = () => {
     if (evidence) {
       Taro.navigateTo({
@@ -121,8 +134,8 @@ const EvidenceDetailPage: React.FC = () => {
     lines.push('========================================')
     lines.push('【第二部分：问题说明】')
     lines.push('========================================')
-    lines.push(`问题类型：${problemLabels.join('、') || '无'}`)
-    lines.push(`问题说明：${evidence.description || '无详细说明'}`)
+    lines.push(`问题类型：${problemLabels.join('、') || '无（当前所有转载均为正常转载）'}`)
+    lines.push(`问题说明：${dynamicProblemDescription}`)
     lines.push('')
     lines.push('========================================')
     lines.push(`【第三部分：涉及转载材料（共 ${reposts.length} 条）】`)
@@ -284,7 +297,7 @@ const EvidenceDetailPage: React.FC = () => {
 
       <View className={styles.section}>
         <Text className={styles.sectionTitle}>问题说明</Text>
-        {problemLabels.length > 0 && (
+        {hasAnyProblem ? (
           <View className={styles.problemTags}>
             {evidence.problemTypes.map((type) => (
               <Text
@@ -298,9 +311,14 @@ const EvidenceDetailPage: React.FC = () => {
               </Text>
             ))}
           </View>
+        ) : (
+          <View className={styles.noProblemTip}>
+            <Text className={styles.noProblemIcon}>✓</Text>
+            <Text className={styles.noProblemText}>当前无问题转载</Text>
+          </View>
         )}
         <Text className={styles.description}>
-          {evidence.description || '暂无详细说明。建议补充具体侵权行为描述，便于沟通和维权。'}
+          {dynamicProblemDescription}
         </Text>
       </View>
 
@@ -455,7 +473,11 @@ const EvidenceDetailPage: React.FC = () => {
         <View className={styles.modalMask} onClick={() => setShowExport(false)}>
           <View
             className={styles.modalContent}
-            onClick={(e) => e.stopPropagation && (e as any).stopPropagation()}
+            onClick={(e) => {
+              if (typeof e.stopPropagation === 'function') {
+                e.stopPropagation()
+              }
+            }}
           >
             <Text className={styles.exportTitle}>证据包导出预览</Text>
             <View className={styles.exportContent}>
