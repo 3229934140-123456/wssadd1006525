@@ -13,11 +13,11 @@ interface EvidenceCardProps {
 }
 
 const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, onClick }) => {
-  const getRepostsByIds = useAppStore((state) => state.getRepostsByIds)
+  const storeReposts = useAppStore((state) => state.reposts)
 
   const reposts = useMemo(
-    () => getRepostsByIds(evidence.repostIds),
-    [evidence.repostIds, getRepostsByIds]
+    () => storeReposts.filter((r) => evidence.repostIds.includes(r.id)),
+    [storeReposts, evidence.repostIds]
   )
 
   const overall = useMemo(

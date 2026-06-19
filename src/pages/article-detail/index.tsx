@@ -13,15 +13,23 @@ const ArticleDetailPage: React.FC = () => {
   const router = useRouter()
   const id = router.params.id
 
-  const getArticleById = useAppStore((state) => state.getArticleById)
-  const getRepostsByArticleId = useAppStore((state) => state.getRepostsByArticleId)
+  const storeArticles = useAppStore((state) => state.articles)
+  const storeReposts = useAppStore((state) => state.reposts)
   const setTrackingFilter = useAppStore((state) => state.setTrackingFilter)
 
-  const article = useMemo(() => getArticleById(id || ''), [id, getArticleById])
-  const reposts = useMemo(
-    () => (id ? getRepostsByArticleId(id) : []),
-    [id, getRepostsByArticleId]
+  const article = useMemo(
+    () => storeArticles.find((a) => a.id === id),
+    [storeArticles, id]
   )
+  const reposts = useMemo(() => {
+    if (!id) return []
+    return storeReposts
+      .filter((r) => r.articleId === id)
+      .sort(
+        (a, b) =>
+          new Date(b.foundTime).getTime() - new Date(a.foundTime).getTime()
+      )
+  }, [storeReposts, id])
 
   const trend = useMemo(() => {
     const total = reposts.length

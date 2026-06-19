@@ -12,11 +12,14 @@ const RepostDetailPage: React.FC = () => {
   const router = useRouter()
   const id = router.params.id
 
-  const getRepostById = useAppStore((state) => state.getRepostById)
+  const storeReposts = useAppStore((state) => state.reposts)
   const updateRepostStatus = useAppStore((state) => state.updateRepostStatus)
   const addRepostToEvidence = useAppStore((state) => state.addRepostToEvidence)
 
-  const repostData = useMemo(() => getRepostById(id || ''), [id, getRepostById])
+  const repostData = useMemo(
+    () => storeReposts.find((r) => r.id === id),
+    [storeReposts, id]
+  )
   const [status, setStatus] = useState<RepostStatus>(repostData?.status || 'normal')
 
   useEffect(() => {

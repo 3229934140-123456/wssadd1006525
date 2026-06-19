@@ -10,7 +10,7 @@ import styles from './index.module.scss'
 
 const EvidencePage: React.FC = () => {
   const storeEvidenceList = useAppStore((state) => state.evidenceList)
-  const getRepostsByIds = useAppStore((state) => state.getRepostsByIds)
+  const storeReposts = useAppStore((state) => state.reposts)
 
   useDidShow(() => {
     console.log('[EvidencePage] didShow, evidence count:', storeEvidenceList.length)
@@ -29,7 +29,7 @@ const EvidencePage: React.FC = () => {
     const allProgresses: ProgressStatus[] = []
     let pendingCount = 0
     evidenceList.forEach((e) => {
-      const reposts = getRepostsByIds(e.repostIds)
+      const reposts = storeReposts.filter((r) => e.repostIds.includes(r.id))
       reposts.forEach((r) => {
         const p = r.progress || 'pending'
         allProgresses.push(p)

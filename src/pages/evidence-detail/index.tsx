@@ -25,22 +25,25 @@ const EvidenceDetailPage: React.FC = () => {
   const router = useRouter()
   const id = router.params.id
 
-  const getEvidenceById = useAppStore((state) => state.getEvidenceById)
-  const getArticleById = useAppStore((state) => state.getArticleById)
-  const getRepostsByIds = useAppStore((state) => state.getRepostsByIds)
+  const storeEvidenceList = useAppStore((state) => state.evidenceList)
+  const storeArticles = useAppStore((state) => state.articles)
+  const storeReposts = useAppStore((state) => state.reposts)
   const updateRepostProgress = useAppStore((state) => state.updateRepostProgress)
   const updateRepostHandlingNotes = useAppStore(
     (state) => state.updateRepostHandlingNotes
   )
 
-  const evidence = useMemo(() => getEvidenceById(id || ''), [id, getEvidenceById])
+  const evidence = useMemo(
+    () => storeEvidenceList.find((e) => e.id === id),
+    [storeEvidenceList, id]
+  )
   const article = useMemo(
-    () => (evidence ? getArticleById(evidence.articleId) : undefined),
-    [evidence, getArticleById]
+    () => (evidence ? storeArticles.find((a) => a.id === evidence.articleId) : undefined),
+    [evidence, storeArticles]
   )
   const reposts = useMemo(
-    () => (evidence ? getRepostsByIds(evidence.repostIds) : []),
-    [evidence, getRepostsByIds]
+    () => (evidence ? storeReposts.filter((r) => evidence.repostIds.includes(r.id)) : []),
+    [evidence, storeReposts]
   )
 
   const overall = useMemo(

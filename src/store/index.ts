@@ -120,20 +120,22 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateRepostStatus: (repostId, status) => {
     const now = new Date().toISOString()
     set((state) => {
+      const oldRepost = state.reposts.find((r) => r.id === repostId)
+      const oldStatus = oldRepost?.status
+
       const newReposts = state.reposts.map((r) =>
         r.id === repostId ? { ...r, status, progressUpdatedAt: now } : r
       )
 
-      const repost = state.reposts.find((r) => r.id === repostId)
       let newArticles = state.articles
 
-      if (repost) {
-        const oldIsProblem = repost.status !== 'normal'
+      if (oldRepost) {
+        const oldIsProblem = oldStatus !== 'normal'
         const newIsProblem = status !== 'normal'
         if (oldIsProblem !== newIsProblem) {
           const delta = newIsProblem ? 1 : -1
           newArticles = state.articles.map((a) =>
-            a.id === repost.articleId
+            a.id === oldRepost.articleId
               ? { ...a, problemCount: Math.max(0, a.problemCount + delta) }
               : a
           )
@@ -142,13 +144,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       const newEvidenceList = state.evidenceList.map((e) => {
         if (e.repostIds.includes(repostId)) {
-          const repostData = newReposts.find((r) => r.id === repostId)
-          const problemTypesSet = new Set(e.problemTypes)
-          if (status !== 'normal') {
-            problemTypesSet.add(status)
-          } else {
-            problemTypesSet.delete(status)
-          }
+          const evidenceReposts = newReposts.filter((r) => e.repostIds.includes(r.id))
+          const problemTypesSet = new Set<RepostStatus>()
+          evidenceReposts.forEach((r) => {
+            if (r.status !== 'normal') {
+              problemTypesSet.add(r.status)
+            }
+          })
           return {
             ...e,
             problemTypes: Array.from(problemTypesSet),
@@ -238,16 +240,20 @@ export const useAppStore = create<AppState>((set, get) => ({
         return { evidenceId: existingEvidence.id, isNew: false }
       }
 
-      const newProblemTypes = new Set(existingEvidence.problemTypes)
-      if (repost.status !== 'normal') {
-        newProblemTypes.add(repost.status)
-      }
+      const newRepostIds = [...existingEvidence.repostIds, repostId]
+      const evidenceReposts = state.reposts.filter((r) => newRepostIds.includes(r.id))
+      const problemTypesSet = new Set<RepostStatus>()
+      evidenceReposts.forEach((r) => {
+        if (r.status !== 'normal') {
+          problemTypesSet.add(r.status)
+        }
+      })
 
       const updatedEvidence: EvidencePackage = {
         ...existingEvidence,
-        repostIds: [...existingEvidence.repostIds, repostId],
+        repostIds: newRepostIds,
         repostCount: existingEvidence.repostCount + 1,
-        problemTypes: Array.from(newProblemTypes),
+        problemTypes: Array.from(problemTypesSet),
         lastUpdatedAt: now
       }
 
