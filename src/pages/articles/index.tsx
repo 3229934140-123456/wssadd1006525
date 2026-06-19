@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import classnames from 'classnames'
-import { mockArticles } from '@/data/articles'
 import { Article, TrackingStatus } from '@/types'
+import { useAppStore } from '@/store'
 import ArticleCard from '@/components/ArticleCard'
 import EmptyState from '@/components/EmptyState'
 import styles from './index.module.scss'
@@ -11,9 +11,13 @@ import styles from './index.module.scss'
 type FilterType = 'all' | TrackingStatus
 
 const ArticlesPage: React.FC = () => {
-  const [articles] = useState<Article[]>(mockArticles)
+  const articles = useAppStore((state) => state.articles)
   const [filter, setFilter] = useState<FilterType>('all')
   const [refreshing, setRefreshing] = useState(false)
+
+  useDidShow(() => {
+    console.log('[ArticlesPage] didShow, articles count:', articles.length)
+  })
 
   const filteredArticles = useMemo(() => {
     if (filter === 'all') return articles
@@ -37,7 +41,7 @@ const ArticlesPage: React.FC = () => {
     setTimeout(() => {
       setRefreshing(false)
       Taro.stopPullDownRefresh()
-    }, 1000)
+    }, 800)
   }
 
   const tabs: { key: FilterType; label: string }[] = [
@@ -84,7 +88,6 @@ const ArticlesPage: React.FC = () => {
       <ScrollView
         scrollY
         className={styles.list}
-        onScrollToLower={() => {}}
         refresherEnabled
         refresherTriggered={refreshing}
         onRefresherRefresh={onPullDownRefresh}

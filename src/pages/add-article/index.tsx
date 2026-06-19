@@ -3,6 +3,7 @@ import { View, Text, Button, Input } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import classnames from 'classnames'
 import { FollowCycle, FollowCycleLabel } from '@/types'
+import { useAppStore } from '@/store'
 import styles from './index.module.scss'
 
 const AddArticlePage: React.FC = () => {
@@ -12,10 +13,13 @@ const AddArticlePage: React.FC = () => {
   const [sourceMedia, setSourceMedia] = useState('财经时报')
   const [followCycle, setFollowCycle] = useState<FollowCycle>('3d')
   const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  const addArticle = useAppStore((state) => state.addArticle)
 
   const cycleOptions: FollowCycle[] = ['24h', '3d', '7d']
 
-  const canSubmit = url.trim().length > 0
+  const canSubmit = url.trim().length > 0 && title.trim().length > 0
 
   const handleFetchInfo = () => {
     if (!url.trim()) {
@@ -24,10 +28,12 @@ const AddArticlePage: React.FC = () => {
     }
     setLoading(true)
     setTimeout(() => {
-      setTitle('从链接自动获取的稿件标题')
+      if (!title.trim()) {
+        setTitle('新媒体时代深度报道的传播路径研究')
+      }
       setLoading(false)
       Taro.showToast({ title: '信息已获取', icon: 'success' })
-    }, 1500)
+    }, 1000)
   }
 
   const handleSubmit = () => {
@@ -39,20 +45,30 @@ const AddArticlePage: React.FC = () => {
       Taro.showToast({ title: '请输入稿件标题', icon: 'none' })
       return
     }
+    if (submitting) return
 
     Taro.showModal({
       title: '确认添加',
       content: `确认添加稿件「${title}」并开始${FollowCycleLabel[followCycle]}追踪？`,
       success: (res) => {
         if (res.confirm) {
+          setSubmitting(true)
           Taro.showLoading({ title: '添加中...' })
           setTimeout(() => {
+            addArticle({
+              title: title.trim(),
+              url: url.trim(),
+              author: author.trim(),
+              sourceMedia: sourceMedia.trim(),
+              followCycle
+            })
             Taro.hideLoading()
+            setSubmitting(false)
             Taro.showToast({ title: '添加成功', icon: 'success' })
             setTimeout(() => {
               Taro.navigateBack()
-            }, 1500)
-          }, 1000)
+            }, 800)
+          }, 600)
         }
       }
     })
@@ -135,9 +151,9 @@ const AddArticlePage: React.FC = () => {
         <Button
           className={classnames(styles.btnPrimary, !canSubmit && styles.disabled)}
           onClick={handleSubmit}
-          disabled={!canSubmit}
+          disabled={!canSubmit || submitting}
         >
-          添加稿件
+          {submitting ? '提交中...' : '添加稿件'}
         </Button>
       </View>
     </View>

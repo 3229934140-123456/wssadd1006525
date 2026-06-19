@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
-import Taro, { useRouter } from '@tarojs/taro'
-import { mockArticles } from '@/data/articles'
-import { mockReposts } from '@/data/reposts'
-import { Article, Repost, FollowCycleLabel, TrackingStatusLabel } from '@/types'
+import Taro, { useRouter, useDidShow } from '@tarojs/taro'
+import { useAppStore } from '@/store'
+import { FollowCycleLabel, TrackingStatusLabel } from '@/types'
 import StatusTag from '@/components/StatusTag'
 import RepostCard from '@/components/RepostCard'
 import { formatDate } from '@/utils'
@@ -13,17 +12,20 @@ const ArticleDetailPage: React.FC = () => {
   const router = useRouter()
   const id = router.params.id
 
-  const article = useMemo<Article | undefined>(() => {
-    return mockArticles.find(a => a.id === id)
-  }, [id])
+  const getArticleById = useAppStore((state) => state.getArticleById)
+  const getRepostsByArticleId = useAppStore((state) => state.getRepostsByArticleId)
 
-  const articleReposts = useMemo<Repost[]>(() => {
-    return mockReposts
-      .filter(r => r.articleId === id)
-      .sort((a, b) => new Date(b.foundTime).getTime() - new Date(a.foundTime).getTime())
-  }, [id])
+  const article = useMemo(() => getArticleById(id || ''), [id, getArticleById])
+  const reposts = useMemo(
+    () => (id ? getRepostsByArticleId(id) : []),
+    [id, getRepostsByArticleId]
+  )
 
-  const [reposts] = useState<Repost[]>(articleReposts)
+  const [refreshing, setRefreshing] = useState(false)
+
+  useDidShow(() => {
+    console.log('[ArticleDetail] didShow, article id:', id)
+  })
 
   const handleCopyUrl = () => {
     if (article) {
@@ -46,6 +48,14 @@ const ArticleDetailPage: React.FC = () => {
 
   const handleToggleTracking = () => {
     Taro.showToast({ title: '操作成功', icon: 'success' })
+  }
+
+  const onPullDownRefresh = () => {
+    setRefreshing(true)
+    setTimeout(() => {
+      setRefreshing(false)
+      Taro.stopPullDownRefresh()
+    }, 800)
   }
 
   if (!article) {
@@ -88,35 +98,56 @@ const ArticleDetailPage: React.FC = () => {
         </View>
       </View>
 
-      <View className={styles.section}>
-        <Text className={styles.sectionTitle}>稿件信息</Text>
-        <View className={styles.infoRow}>
-          <Text className={styles.infoLabel}>原文链接</Text>
-          <Text className={styles.linkValue} onClick={handleCopyUrl}>{article.url}</Text>
+      <ScrollView
+        scrollY
+        style={{ flex: 1 }}
+        refresherEnabled
+        refresherTriggered={refreshing}
+        onRefresherRefresh={onPullDownRefresh}
+      >
+        <View className={styles.section}>
+          <Text className={styles.sectionTitle}>稿件信息</Text>
+          <View className={styles.infoRow}>
+            <Text className={styles.infoLabel}>原文链接</Text>
+            <Text className={styles.linkValue} onClick={handleCopyUrl}>{article.url}</Text>
+          </View>
+          <View className={styles.infoRow}>
+            <Text className={styles.infoLabel}>发布时间</Text>
+            <Text className={styles.infoValue}>{formatDate(article.publishTime)}</Text>
+          </View>
+          <View className={styles.infoRow}>
+            <Text className={styles.infoLabel}>追踪状态</Text>
+            <Text className={styles.infoValue}>{TrackingStatusLabel[article.trackingStatus]}</Text>
+          </View>
+          <View className={styles.infoRow}>
+            <Text className={styles.infoLabel}>添加时间</Text>
+            <Text className={styles.infoValue}>{formatDate(article.createdAt)}</Text>
+          </View>
         </View>
-        <View className={styles.infoRow}>
-          <Text className={styles.infoLabel}>发布时间</Text>
-          <Text className={styles.infoValue}>{formatDate(article.publishTime)}</Text>
-        </View>
-        <View className={styles.infoRow}>
-          <Text className={styles.infoLabel}>追踪状态</Text>
-          <Text className={styles.infoValue}>{TrackingStatusLabel[article.trackingStatus]}</Text>
-        </View>
-        <View className={styles.infoRow}>
-          <Text className={styles.infoLabel}>添加时间</Text>
-          <Text className={styles.infoValue}>{formatDate(article.createdAt)}</Text>
-        </View>
-      </View>
 
-      <View className={styles.repostsSection}>
-        <View className={styles.repostsHeader}>
-          <Text className={styles.repostsTitle}>最新转载</Text>
-          <Text className={styles.viewAll} onClick={handleViewAllReposts}>查看全部 →</Text>
+        <View className={styles.repostsSection}>
+          <View className={styles.repostsHeader}>
+            <Text className={styles.repostsTitle}>最新转载</Text>
+            {reposts.length > 3 && (
+              <Text className={styles.viewAll} onClick={handleViewAllReposts}>查看全部 →</Text>
+            )}
+          </View>
+          {reposts.length > 0 ? (
+            reposts.slice(0, 3).map(repost => (
+              <RepostCard key={repost.id} repost={repost} />
+            ))
+          ) : (
+            <View style={{
+              padding: '48rpx 0',
+              textAlign: 'center',
+              color: '#86909C',
+              fontSize: '24rpx'
+            }}>
+              <Text>暂无转载记录</Text>
+            </View>
+          )}
         </View>
-        {reposts.slice(0, 3).map(repost => (
-          <RepostCard key={repost.id} repost={repost} />
-        ))}
-      </View>
+      </ScrollView>
 
       <View className={styles.bottomBar}>
         <Button className={styles.btnSecondary} onClick={handleShare}>分享</Button>

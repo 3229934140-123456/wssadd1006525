@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import classnames from 'classnames'
-import { mockReposts } from '@/data/reposts'
-import { Repost, RepostStatus, RepostStatusLabel } from '@/types'
+import { Repost, RepostStatus } from '@/types'
+import { useAppStore } from '@/store'
 import RepostCard from '@/components/RepostCard'
 import EmptyState from '@/components/EmptyState'
 import styles from './index.module.scss'
@@ -11,11 +11,19 @@ import styles from './index.module.scss'
 type FilterType = 'all' | 'unhandled' | RepostStatus
 
 const TrackingPage: React.FC = () => {
-  const [reposts, setReposts] = useState<Repost[]>(
-    [...mockReposts].sort((a, b) => new Date(b.foundTime).getTime() - new Date(a.foundTime).getTime())
-  )
+  const storeReposts = useAppStore((state) => state.reposts)
   const [filter, setFilter] = useState<FilterType>('all')
   const [refreshing, setRefreshing] = useState(false)
+
+  useDidShow(() => {
+    console.log('[TrackingPage] didShow, reposts count:', storeReposts.length)
+  })
+
+  const reposts = useMemo(() => {
+    return [...storeReposts].sort(
+      (a, b) => new Date(b.foundTime).getTime() - new Date(a.foundTime).getTime()
+    )
+  }, [storeReposts])
 
   const stats = useMemo(() => {
     const today = new Date()
@@ -64,7 +72,7 @@ const TrackingPage: React.FC = () => {
       setRefreshing(false)
       Taro.stopPullDownRefresh()
       Taro.showToast({ title: '已更新', icon: 'success' })
-    }, 1000)
+    }, 800)
   }
 
   const tabs: { key: FilterType; label: string }[] = [

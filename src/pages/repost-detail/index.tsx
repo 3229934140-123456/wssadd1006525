@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import classnames from 'classnames'
-import { mockReposts } from '@/data/reposts'
 import { Repost, RepostStatus, RepostStatusLabel } from '@/types'
+import { useAppStore } from '@/store'
 import StatusTag from '@/components/StatusTag'
 import { formatDate, formatSimilarity } from '@/utils'
 import styles from './index.module.scss'
@@ -12,11 +12,22 @@ const RepostDetailPage: React.FC = () => {
   const router = useRouter()
   const id = router.params.id
 
-  const repost = useMemo<Repost | undefined>(() => {
-    return mockReposts.find(r => r.id === id)
-  }, [id])
+  const getRepostById = useAppStore((state) => state.getRepostById)
+  const updateRepostStatus = useAppStore((state) => state.updateRepostStatus)
+  const addRepostToEvidence = useAppStore((state) => state.addRepostToEvidence)
 
-  const [status, setStatus] = useState<RepostStatus>(repost?.status || 'normal')
+  const repostData = useMemo(() => getRepostById(id || ''), [id, getRepostById])
+  const [status, setStatus] = useState<RepostStatus>(repostData?.status || 'normal')
+
+  useEffect(() => {
+    if (repostData) {
+      setStatus(repostData.status)
+    }
+  }, [repostData?.id, repostData?.status])
+
+  const repost = repostData
+    ? { ...repostData, status }
+    : undefined as Repost | undefined
 
   const handleCopyUrl = () => {
     if (repost) {
@@ -30,18 +41,37 @@ const RepostDetailPage: React.FC = () => {
   }
 
   const handleViewOriginal = () => {
-    Taro.navigateTo({
-      url: `/pages/article-detail/index?id=${repost?.articleId}`
-    })
+    if (repost) {
+      Taro.navigateTo({
+        url: `/pages/article-detail/index?id=${repost.articleId}`
+      })
+    }
   }
 
   const handleAddToEvidence = () => {
+    if (!id) return
     Taro.showModal({
       title: '加入证据包',
-      content: '确认将此转载加入证据包？',
+      content: '确认将此转载加入证据包？系统会自动创建或合并到该稿件的证据包。',
       success: (res) => {
         if (res.confirm) {
-          Taro.showToast({ title: '已加入证据包', icon: 'success' })
+          const result = addRepostToEvidence(id)
+          if (result.isNew) {
+            Taro.showModal({
+              title: '已创建证据包',
+              content: '已为该稿件创建新的证据包并加入此转载。是否立即查看？',
+              confirmText: '查看',
+              success: (r2) => {
+                if (r2.confirm) {
+                  Taro.navigateTo({
+                    url: `/pages/evidence-detail/index?id=${result.evidenceId}`
+                  })
+                }
+              }
+            })
+          } else {
+            Taro.showToast({ title: '已加入证据包', icon: 'success' })
+          }
         }
       }
     })
@@ -52,7 +82,9 @@ const RepostDetailPage: React.FC = () => {
   }
 
   const handleMarkStatus = (newStatus: RepostStatus) => {
+    if (!id) return
     setStatus(newStatus)
+    updateRepostStatus(id, newStatus)
     Taro.showToast({ title: '已更新状态', icon: 'success' })
   }
 
@@ -111,7 +143,7 @@ const RepostDetailPage: React.FC = () => {
           <Text className={styles.infoLabel}>保留作者</Text>
           <Text className={classnames(
             styles.infoValue,
-            repost.hasAuthor ? '' : styles.numRed
+            !repost.hasAuthor && styles.numRed
           )}>
             {repost.hasAuthor ? '是' : '否'}
           </Text>
@@ -120,7 +152,7 @@ const RepostDetailPage: React.FC = () => {
           <Text className={styles.infoLabel}>保留原媒体</Text>
           <Text className={classnames(
             styles.infoValue,
-            repost.hasSourceMedia ? '' : styles.numRed
+            !repost.hasSourceMedia && styles.numRed
           )}>
             {repost.hasSourceMedia ? '是' : '否'}
           </Text>

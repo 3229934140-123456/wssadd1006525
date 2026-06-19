@@ -1,16 +1,23 @@
 import React, { useState, useMemo } from 'react'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
-import Taro from '@tarojs/taro'
-import { mockEvidence } from '@/data/evidence'
-import { EvidencePackage } from '@/types'
+import Taro, { useDidShow } from '@tarojs/taro'
+import { useAppStore } from '@/store'
 import EvidenceCard from '@/components/EvidenceCard'
 import EmptyState from '@/components/EmptyState'
 import styles from './index.module.scss'
 
 const EvidencePage: React.FC = () => {
-  const [evidenceList] = useState<EvidencePackage[]>(
-    [...mockEvidence].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  )
+  const storeEvidenceList = useAppStore((state) => state.evidenceList)
+
+  useDidShow(() => {
+    console.log('[EvidencePage] didShow, evidence count:', storeEvidenceList.length)
+  })
+
+  const evidenceList = useMemo(() => {
+    return [...storeEvidenceList].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+  }, [storeEvidenceList])
 
   const stats = useMemo(() => {
     const totalReposts = evidenceList.reduce((sum, e) => sum + e.repostCount, 0)
