@@ -1,14 +1,21 @@
 import React from 'react'
 import { View, Text } from '@tarojs/components'
 import classnames from 'classnames'
-import { RepostStatus, TrackingStatus, RepostStatusLabel, TrackingStatusLabel } from '@/types'
+import {
+  RepostStatus,
+  TrackingStatus,
+  ProgressStatus,
+  RepostStatusLabel,
+  TrackingStatusLabel,
+  ProgressStatusLabel
+} from '@/types'
 import styles from './index.module.scss'
 
-type StatusType = 'repost' | 'tracking' | 'similarity'
+type StatusType = 'repost' | 'tracking' | 'similarity' | 'progress'
 
 interface StatusTagProps {
   type: StatusType
-  value: RepostStatus | TrackingStatus | number
+  value: RepostStatus | TrackingStatus | number | ProgressStatus
 }
 
 const StatusTag: React.FC<StatusTagProps> = ({ type, value }) => {
@@ -47,6 +54,23 @@ const StatusTag: React.FC<StatusTagProps> = ({ type, value }) => {
       if (sim >= 0.7) return styles.tagWarning
       return styles.tagDanger
     }
+    if (type === 'progress') {
+      const status = value as ProgressStatus
+      switch (status) {
+        case 'pending':
+          return styles.tagDefault
+        case 'verifying':
+          return styles.tagWarning
+        case 'contacted':
+          return styles.tagPrimary
+        case 'resolved':
+          return styles.tagSuccess
+        case 'closed':
+          return styles.tagDefault
+        default:
+          return styles.tagDefault
+      }
+    }
     return styles.tagDefault
   }
 
@@ -58,7 +82,10 @@ const StatusTag: React.FC<StatusTagProps> = ({ type, value }) => {
       return TrackingStatusLabel[value as TrackingStatus]
     }
     if (type === 'similarity') {
-      return `相似度 ${Math.round((value as number) * 100}%`
+      return `相似度 ${Math.round((value as number) * 100)}%`
+    }
+    if (type === 'progress') {
+      return ProgressStatusLabel[value as ProgressStatus]
     }
     return ''
   }

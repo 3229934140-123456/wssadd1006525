@@ -6,7 +6,8 @@ import {
   EvidencePackage,
   RepostStatus,
   FollowCycle,
-  TrackingStatus
+  TrackingStatus,
+  ProgressStatus
 } from '@/types'
 import { mockArticles } from '@/data/articles'
 import { mockReposts } from '@/data/reposts'
@@ -17,8 +18,14 @@ interface AppState {
   articles: Article[]
   reposts: Repost[]
   evidenceList: EvidencePackage[]
+  trackingFilter: {
+    articleId: string
+    statusFilter: 'all' | 'unhandled' | RepostStatus
+    timeRange: 'all' | 'today' | 'yesterday' | '7d'
+  }
 
   initData: () => void
+  setTrackingFilter: (filter: Partial<AppState['trackingFilter']>) => void
 
   addArticle: (data: {
     title: string
@@ -29,6 +36,8 @@ interface AppState {
   }) => Article
 
   updateRepostStatus: (repostId: string, status: RepostStatus) => void
+  updateRepostProgress: (repostId: string, progress: ProgressStatus) => void
+  updateRepostHandlingNotes: (repostId: string, notes: string) => void
 
   addRepostToEvidence: (repostId: string) => { evidenceId: string; isNew: boolean }
 
@@ -40,18 +49,48 @@ interface AppState {
 
   _persist: () => void
   _hydrate: () => void
+  _migrate: (data: any) => any
 }
 
 const STORAGE_KEY = 'gaozong_app_state_v1'
+const FILTER_KEY = 'gaozong_tracking_filter_v1'
+
+const DEFAULT_FILTER: AppState['trackingFilter'] = {
+  articleId: 'all',
+  statusFilter: 'all',
+  timeRange: 'all'
+}
 
 export const useAppStore = create<AppState>((set, get) => ({
   articles: [],
   reposts: [],
   evidenceList: [],
+  trackingFilter: DEFAULT_FILTER,
 
   initData: () => {
     const { _hydrate } = get()
     _hydrate()
+
+    try {
+      const storedFilter = Taro.getStorageSync(FILTER_KEY)
+      if (storedFilter) {
+        const parsed = JSON.parse(storedFilter)
+        set({ trackingFilter: { ...DEFAULT_FILTER, ...parsed } })
+      }
+    } catch (e) {
+      console.error('[Store] filter hydrate failed', e)
+    }
+  },
+
+  setTrackingFilter: (filter) => {
+    set((state) => ({
+      trackingFilter: { ...state.trackingFilter, ...filter }
+    }))
+    try {
+      Taro.setStorageSync(FILTER_KEY, JSON.stringify(get().trackingFilter))
+    } catch (e) {
+      console.error('[Store] filter persist failed', e)
+    }
   },
 
   addArticle: (data) => {
@@ -79,9 +118,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   updateRepostStatus: (repostId, status) => {
+    const now = new Date().toISOString()
     set((state) => {
       const newReposts = state.reposts.map((r) =>
-        r.id === repostId ? { ...r, status } : r
+        r.id === repostId ? { ...r, status, progressUpdatedAt: now } : r
       )
 
       const repost = state.reposts.find((r) => r.id === repostId)
@@ -101,8 +141,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
 
       const newEvidenceList = state.evidenceList.map((e) => {
-        const updatedRepost = newReposts.find((r) => r.id === repostId)
-        if (e.repostIds.includes(repostId) && updatedRepost) {
+        if (e.repostIds.includes(repostId)) {
+          const repostData = newReposts.find((r) => r.id === repostId)
           const problemTypesSet = new Set(e.problemTypes)
           if (status !== 'normal') {
             problemTypesSet.add(status)
@@ -111,7 +151,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           }
           return {
             ...e,
-            problemTypes: Array.from(problemTypesSet)
+            problemTypes: Array.from(problemTypesSet),
+            lastUpdatedAt: now
           }
         }
         return e
@@ -127,9 +168,62 @@ export const useAppStore = create<AppState>((set, get) => ({
     get()._persist()
   },
 
+  updateRepostProgress: (repostId, progress) => {
+    const now = new Date().toISOString()
+    set((state) => {
+      const newReposts = state.reposts.map((r) =>
+        r.id === repostId
+          ? { ...r, progress, progressUpdatedAt: now }
+          : r
+      )
+
+      const repost = newReposts.find((r) => r.id === repostId)
+      const newEvidenceList = state.evidenceList.map((e) => {
+        if (repost && e.repostIds.includes(repostId)) {
+          return { ...e, lastUpdatedAt: now }
+        }
+        return e
+      })
+
+      return {
+        reposts: newReposts,
+        evidenceList: newEvidenceList
+      }
+    })
+
+    get()._persist()
+  },
+
+  updateRepostHandlingNotes: (repostId, notes) => {
+    const now = new Date().toISOString()
+    set((state) => {
+      const newReposts = state.reposts.map((r) =>
+        r.id === repostId
+          ? { ...r, handlingNotes: notes, progressUpdatedAt: now }
+          : r
+      )
+
+      const repost = newReposts.find((r) => r.id === repostId)
+      const newEvidenceList = state.evidenceList.map((e) => {
+        if (repost && e.repostIds.includes(repostId)) {
+          return { ...e, lastUpdatedAt: now }
+        }
+        return e
+      })
+
+      return {
+        reposts: newReposts,
+        evidenceList: newEvidenceList
+      }
+    })
+
+    get()._persist()
+  },
+
   addRepostToEvidence: (repostId) => {
     const state = get()
     const repost = state.reposts.find((r) => r.id === repostId)
+    const now = new Date().toISOString()
 
     if (!repost) {
       return { evidenceId: '', isNew: false }
@@ -153,12 +247,18 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...existingEvidence,
         repostIds: [...existingEvidence.repostIds, repostId],
         repostCount: existingEvidence.repostCount + 1,
-        problemTypes: Array.from(newProblemTypes)
+        problemTypes: Array.from(newProblemTypes),
+        lastUpdatedAt: now
       }
 
       set((s) => ({
         evidenceList: s.evidenceList.map((e) =>
           e.id === existingEvidence.id ? updatedEvidence : e
+        ),
+        reposts: s.reposts.map((r) =>
+          r.id === repostId
+            ? { ...r, progress: r.progress || 'pending' as ProgressStatus, progressUpdatedAt: now }
+            : r
         )
       }))
 
@@ -166,7 +266,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { evidenceId: existingEvidence.id, isNew: false }
     }
 
-    const now = new Date().toISOString()
     const newEvidence: EvidencePackage = {
       id: generateId(),
       title: `${repost.articleTitle} - 侵权证据包`,
@@ -176,11 +275,17 @@ export const useAppStore = create<AppState>((set, get) => ({
       repostCount: 1,
       problemTypes: repost.status !== 'normal' ? [repost.status] : [],
       createdAt: now,
+      lastUpdatedAt: now,
       description: `针对稿件「${repost.articleTitle}」的转载问题证据包`
     }
 
     set((s) => ({
-      evidenceList: [newEvidence, ...s.evidenceList]
+      evidenceList: [newEvidence, ...s.evidenceList],
+      reposts: s.reposts.map((r) =>
+        r.id === repostId
+          ? { ...r, progress: 'pending' as ProgressStatus, progressUpdatedAt: now }
+          : r
+      )
     }))
 
     get()._persist()
@@ -228,29 +333,64 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  _migrate: (data) => {
+    if (!data) return data
+    const { _migrateRepost, _migrateEvidence } = get()
+
+    return {
+      articles: data.articles || [],
+      reposts: (data.reposts || []).map((r: any) => _migrateRepost(r)),
+      evidenceList: (data.evidenceList || []).map((e: any) => _migrateEvidence(e))
+    }
+  },
+
+  _migrateRepost: (r) => {
+    return {
+      ...r,
+      progress: r.progress || 'pending',
+      handlingNotes: r.handlingNotes || '',
+      progressUpdatedAt: r.progressUpdatedAt || r.foundTime
+    }
+  },
+
+  _migrateEvidence: (e) => {
+    return {
+      ...e,
+      lastUpdatedAt: e.lastUpdatedAt || e.createdAt
+    }
+  },
+
   _hydrate: () => {
     try {
       const stored = Taro.getStorageSync(STORAGE_KEY)
       if (stored) {
         const parsed = JSON.parse(stored)
+        const migrated = get()._migrate(parsed)
         set({
-          articles: parsed.articles || [],
-          reposts: parsed.reposts || [],
-          evidenceList: parsed.evidenceList || []
+          articles: migrated.articles || [],
+          reposts: migrated.reposts || [],
+          evidenceList: migrated.evidenceList || []
         })
-        console.log('[Store] hydrated from storage')
+        console.log('[Store] hydrated + migrated from storage')
         return
       }
     } catch (e) {
       console.error('[Store] hydrate failed, using default data', e)
     }
 
+    const defaultReposts = mockReposts.map((r) => ({
+      ...r,
+      progress: 'pending' as ProgressStatus,
+      handlingNotes: '',
+      progressUpdatedAt: r.foundTime
+    }))
+
     set({
       articles: [...mockArticles],
-      reposts: [...mockReposts],
+      reposts: defaultReposts,
       evidenceList: [...mockEvidence]
     })
     get()._persist()
-    console.log('[Store] initialized with mock data')
+    console.log('[Store] initialized with mock data + defaults')
   }
 }))

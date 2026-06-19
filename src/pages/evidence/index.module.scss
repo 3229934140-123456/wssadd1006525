@@ -56,6 +56,18 @@
   font-weight: $font-weight-bold;
 }
 
+.statNumPending {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: #ffd666;
+}
+
+.statNumSuccess {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: #95de64;
+}
+
 .statLabel {
   font-size: $font-size-sm;
   opacity: 0.8;

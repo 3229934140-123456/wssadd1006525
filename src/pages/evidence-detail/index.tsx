@@ -1,12 +1,25 @@
 import React, { useState, useMemo } from 'react'
-import { View, Text, Button, ScrollView } from '@tarojs/components'
+import { View, Text, Button, ScrollView, Textarea, Picker } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import classnames from 'classnames'
 import { useAppStore } from '@/store'
-import { RepostStatusLabel, RepostStatus } from '@/types'
+import {
+  RepostStatusLabel,
+  RepostStatus,
+  ProgressStatus,
+  ProgressStatusLabel
+} from '@/types'
 import StatusTag from '@/components/StatusTag'
-import { formatDate, formatSimilarity } from '@/utils'
+import { formatDate, formatSimilarity, calcOverallProgress } from '@/utils'
 import styles from './index.module.scss'
+
+const PROGRESS_OPTIONS: ProgressStatus[] = [
+  'pending',
+  'verifying',
+  'contacted',
+  'resolved',
+  'closed'
+]
 
 const EvidenceDetailPage: React.FC = () => {
   const router = useRouter()
@@ -15,6 +28,10 @@ const EvidenceDetailPage: React.FC = () => {
   const getEvidenceById = useAppStore((state) => state.getEvidenceById)
   const getArticleById = useAppStore((state) => state.getArticleById)
   const getRepostsByIds = useAppStore((state) => state.getRepostsByIds)
+  const updateRepostProgress = useAppStore((state) => state.updateRepostProgress)
+  const updateRepostHandlingNotes = useAppStore(
+    (state) => state.updateRepostHandlingNotes
+  )
 
   const evidence = useMemo(() => getEvidenceById(id || ''), [id, getEvidenceById])
   const article = useMemo(
@@ -26,9 +43,17 @@ const EvidenceDetailPage: React.FC = () => {
     [evidence, getRepostsByIds]
   )
 
+  const overall = useMemo(
+    () =>
+      calcOverallProgress(
+        reposts.map((r) => r.progress || 'pending' as ProgressStatus)
+      ),
+    [reposts]
+  )
+
   const [showExport, setShowExport] = useState(false)
 
-  const problemLabels = evidence?.problemTypes.map(t => RepostStatusLabel[t]) || []
+  const problemLabels = evidence?.problemTypes.map((t) => RepostStatusLabel[t]) || []
 
   const handleViewArticle = () => {
     if (evidence) {
@@ -53,15 +78,35 @@ const EvidenceDetailPage: React.FC = () => {
     })
   }
 
+  const handleProgressChange = (repostId: string, pickerIdx: string | number) => {
+    const idx = Number(pickerIdx)
+    if (idx >= 0 && idx < PROGRESS_OPTIONS.length) {
+      updateRepostProgress(repostId, PROGRESS_OPTIONS[idx])
+      Taro.showToast({ title: '进度已更新', icon: 'success', duration: 1000 })
+    }
+  }
+
+  const handleNotesChange = (repostId: string, value: string) => {
+    updateRepostHandlingNotes(repostId, value)
+  }
+
   const buildExportContent = () => {
     if (!evidence) return ''
 
     const lines: string[] = []
     lines.push(`证据包名称：${evidence.title}`)
     lines.push(`创建时间：${formatDate(evidence.createdAt)}`)
+    lines.push(`最近更新：${formatDate(evidence.lastUpdatedAt)}`)
     lines.push(`证据包编号：${evidence.id}`)
+    lines.push(`维权进度：${overall.progressText}`)
     lines.push('')
-    lines.push('===== 原文信息 =====')
+    lines.push('========================================')
+    lines.push('【第一部分：原文材料】')
+    lines.push('========================================')
+    lines.push('[原文截图占位]')
+    lines.push('  类型：原文章节完整页面截图')
+    lines.push('  状态：系统自动抓取，待人工核验')
+    lines.push('')
     lines.push(`原文标题：${evidence.articleTitle}`)
     if (article) {
       lines.push(`原文作者：${article.author}`)
@@ -70,15 +115,27 @@ const EvidenceDetailPage: React.FC = () => {
       lines.push(`发布时间：${formatDate(article.publishTime)}`)
     }
     lines.push('')
+    lines.push('========================================')
+    lines.push('【第二部分：问题说明】')
+    lines.push('========================================')
     lines.push(`问题类型：${problemLabels.join('、') || '无'}`)
-    lines.push(`问题说明：${evidence.description || '无'}`)
+    lines.push(`问题说明：${evidence.description || '无详细说明'}`)
     lines.push('')
-    lines.push(`===== 涉及转载（共 ${reposts.length} 条）=====`)
+    lines.push('========================================')
+    lines.push(`【第三部分：涉及转载材料（共 ${reposts.length} 条）】`)
+    lines.push('========================================')
 
     reposts.forEach((repost, idx) => {
       lines.push('')
-      lines.push(`--- 转载 ${idx + 1} ---`)
-      lines.push(`转载标题：${repost.title}`)
+      lines.push(`───────────────────────────`)
+      lines.push(`▌转载 ${idx + 1}：${repost.title}`)
+      lines.push(`───────────────────────────`)
+      lines.push('[转载页面截图占位]')
+      lines.push(
+        `  类型：转载${RepostStatusLabel[repost.status]}部分完整截图（首页/文章页/正文）`
+      )
+      lines.push('  状态：系统自动抓取，待人工核验')
+      lines.push('')
       lines.push(`来源站点：${repost.sourceSite}`)
       lines.push(`转载链接：${repost.url}`)
       lines.push(`发现时间：${formatDate(repost.foundTime)}`)
@@ -86,6 +143,13 @@ const EvidenceDetailPage: React.FC = () => {
       lines.push(`问题类型：${RepostStatusLabel[repost.status]}`)
       lines.push(`保留作者：${repost.hasAuthor ? '是' : '否'}`)
       lines.push(`保留来源：${repost.hasSourceMedia ? '是' : '否'}`)
+      lines.push(`维权进度：${ProgressStatusLabel[repost.progress || 'pending']}`)
+      if (repost.progressUpdatedAt) {
+        lines.push(`进度更新时间：${formatDate(repost.progressUpdatedAt)}`)
+      }
+      if (repost.handlingNotes) {
+        lines.push(`处理备注：${repost.handlingNotes}`)
+      }
     })
 
     return lines.join('\n')
@@ -141,7 +205,24 @@ const EvidenceDetailPage: React.FC = () => {
         <View className={styles.metaRow}>
           <Text>{evidence.repostCount} 条转载</Text>
           <Text>·</Text>
-          <Text>{formatDate(evidence.createdAt)}</Text>
+          <Text>最近更新 {formatDate(evidence.lastUpdatedAt)}</Text>
+        </View>
+        <View className={styles.progressBarWrap}>
+          <View className={styles.progressBar}>
+            <View
+              className={styles.progressBarFill}
+              style={{
+                width: `${overall.totalCount ? (overall.resolvedCount / overall.totalCount) * 100 : 0}%`
+              }}
+            />
+          </View>
+          <View className={styles.progressInfoRow}>
+            <StatusTag type="progress" value={overall.overall} />
+            <Text className={styles.progressRateText}>
+              处理进度 {overall.resolvedCount}/{overall.totalCount}
+              {overall.totalCount ? `（${Math.round((overall.resolvedCount / overall.totalCount) * 100)}%）` : ''}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -154,6 +235,10 @@ const EvidenceDetailPage: React.FC = () => {
           <Text className={styles.statNumPrimary}>{evidence.problemTypes.length}</Text>
           <Text className={styles.statLabel}>问题类型</Text>
         </View>
+        <View className={styles.statItem}>
+          <Text className={styles.statNumSuccess}>{overall.resolvedCount}</Text>
+          <Text className={styles.statLabel}>已处理</Text>
+        </View>
       </View>
 
       <View className={styles.section}>
@@ -161,14 +246,14 @@ const EvidenceDetailPage: React.FC = () => {
         <View className={styles.screenshotPlaceholder}>
           <Text className={styles.screenshotIcon}>🖼️</Text>
           <Text className={styles.screenshotText}>原文页面截图</Text>
-          <Text className={styles.screenshotLabel}>系统自动抓取</Text>
+          <Text className={styles.screenshotLabel}>系统自动抓取 · 待人工核验</Text>
         </View>
         <View className={styles.articleInfo}>
           <Text className={styles.articleText}>{evidence.articleTitle}</Text>
           <Text className={styles.articleLink} onClick={handleViewArticle}>查看 →</Text>
         </View>
         {article && (
-          <View style={{ marginTop: '16rpx' }}>
+          <View className={styles.articleMetaBlock}>
             <View className={styles.infoRow}>
               <Text className={styles.infoLabel}>原文作者</Text>
               <Text className={styles.infoValue}>{article.author}</Text>
@@ -220,20 +305,25 @@ const EvidenceDetailPage: React.FC = () => {
         <Text className={styles.sectionTitle}>涉及转载材料 ({evidence.repostCount})</Text>
         <View className={styles.repostsList}>
           {reposts.map((repost, idx) => (
-            <View
-              key={repost.id}
-              className={styles.repostItem}
-            >
+            <View key={repost.id} className={styles.repostItem}>
               <View className={styles.repostHeader}>
-                <Text className={styles.repostTitle} onClick={() => handleViewRepost(repost.id)}>
+                <Text
+                  className={styles.repostTitle}
+                  onClick={() => handleViewRepost(repost.id)}
+                >
                   {idx + 1}. {repost.title}
                 </Text>
                 <StatusTag type="repost" value={repost.status} />
               </View>
-              <View className={styles.screenshotPlaceholder} style={{ aspectRatio: '16 / 9', marginTop: '16rpx' }}>
+
+              <View className={classnames(styles.screenshotPlaceholder, styles.screenshotWide)}>
                 <Text className={styles.screenshotIcon}>📸</Text>
                 <Text className={styles.screenshotText}>转载页面截图</Text>
+                <Text className={styles.screenshotLabel}>
+                  {RepostStatusLabel[repost.status]}部分完整截图
+                </Text>
               </View>
+
               <View className={styles.repostInfoBlock}>
                 <View className={styles.repostInfoRow}>
                   <Text className={styles.repostInfoLabel}>来源站点</Text>
@@ -250,27 +340,35 @@ const EvidenceDetailPage: React.FC = () => {
                 </View>
                 <View className={styles.repostInfoRow}>
                   <Text className={styles.repostInfoLabel}>发现时间</Text>
-                  <Text className={styles.repostInfoValue}>{formatDate(repost.foundTime)}</Text>
+                  <Text className={styles.repostInfoValue}>
+                    {formatDate(repost.foundTime)}
+                  </Text>
                 </View>
                 <View className={styles.repostInfoRow}>
                   <Text className={styles.repostInfoLabel}>正文相似度</Text>
-                  <Text className={styles.repostInfoValue}>{formatSimilarity(repost.similarity)}</Text>
+                  <Text className={styles.repostInfoValue}>
+                    {formatSimilarity(repost.similarity)}
+                  </Text>
                 </View>
                 <View className={styles.repostInfoRow}>
                   <Text className={styles.repostInfoLabel}>保留作者</Text>
-                  <Text className={classnames(
-                    styles.repostInfoValue,
-                    !repost.hasAuthor && { color: '#f53f3f' }
-                  )}>
+                  <Text
+                    className={classnames(
+                      styles.repostInfoValue,
+                      !repost.hasAuthor && styles.hasAuthorNo
+                    )}
+                  >
                     {repost.hasAuthor ? '是' : '否'}
                   </Text>
                 </View>
                 <View className={styles.repostInfoRow}>
                   <Text className={styles.repostInfoLabel}>保留来源</Text>
-                  <Text className={classnames(
-                    styles.repostInfoValue,
-                    !repost.hasSourceMedia && { color: '#f53f3f' }
-                  )}>
+                  <Text
+                    className={classnames(
+                      styles.repostInfoValue,
+                      !repost.hasSourceMedia && styles.hasAuthorNo
+                    )}
+                  >
                     {repost.hasSourceMedia ? '是' : '否'}
                   </Text>
                 </View>
@@ -279,6 +377,42 @@ const EvidenceDetailPage: React.FC = () => {
                   <Text className={styles.repostInfoValue}>
                     {RepostStatusLabel[repost.status]}
                   </Text>
+                </View>
+              </View>
+
+              <View className={styles.repostProgressBlock}>
+                <Text className={styles.blockTitle}>维权进度</Text>
+                <Picker
+                  mode="selector"
+                  range={PROGRESS_OPTIONS.map((p) => ProgressStatusLabel[p])}
+                  value={PROGRESS_OPTIONS.indexOf(repost.progress || 'pending')}
+                  onChange={(e) => handleProgressChange(repost.id, e.detail.value)}
+                >
+                  <View className={styles.progressPicker}>
+                    <View className={styles.progressPickerLeft}>
+                      <StatusTag type="progress" value={repost.progress || 'pending'} />
+                    </View>
+                    <Text className={styles.progressPickerArrow}>▼ 切换</Text>
+                  </View>
+                </Picker>
+                {repost.progressUpdatedAt && (
+                  <Text className={styles.updatedAtText}>
+                    更新时间：{formatDate(repost.progressUpdatedAt)}
+                  </Text>
+                )}
+
+                <View className={styles.notesBlock}>
+                  <Text className={styles.blockTitle}>处理备注</Text>
+                  <Textarea
+                    className={styles.notesTextarea}
+                    placeholder="记录联系结果、对方反馈、约定下架时间等处理过程中的关键信息..."
+                    value={repost.handlingNotes || ''}
+                    maxlength={500}
+                    onInput={(e) => handleNotesChange(repost.id, e.detail.value)}
+                    onBlur={(e) => handleNotesChange(repost.id, e.detail.value)}
+                    autoHeight
+                    showConfirmBar
+                  />
                 </View>
               </View>
             </View>
@@ -300,6 +434,10 @@ const EvidenceDetailPage: React.FC = () => {
           <Text className={styles.infoValue}>{formatDate(evidence.createdAt)}</Text>
         </View>
         <View className={styles.infoRow}>
+          <Text className={styles.infoLabel}>最近更新</Text>
+          <Text className={styles.infoValue}>{formatDate(evidence.lastUpdatedAt)}</Text>
+        </View>
+        <View className={styles.infoRow}>
           <Text className={styles.infoLabel}>证据包ID</Text>
           <Text className={styles.infoValue}>{evidence.id}</Text>
         </View>
@@ -311,46 +449,47 @@ const EvidenceDetailPage: React.FC = () => {
       </View>
 
       {showExport && (
-        <View
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '32rpx'
-          }}
-          onClick={() => setShowExport(false)}
-        >
+        <View className={styles.modalMask} onClick={() => setShowExport(false)}>
           <View
-            className={styles.exportModal}
+            className={styles.modalContent}
             onClick={(e) => e.stopPropagation && (e as any).stopPropagation()}
-            style={{ width: '100%', maxWidth: '686rpx' }}
           >
             <Text className={styles.exportTitle}>证据包导出预览</Text>
             <View className={styles.exportContent}>
               <ScrollView scrollY style={{ maxHeight: '50vh' }}>
-                {exportContent.split('\n').map((line, idx) => (
-                  <Text
-                    key={idx}
-                    className={line.startsWith('=====') || line.startsWith('---') ? styles.exportSectionTitle : styles.exportText}
-                    style={{
-                      lineHeight: 1.8,
-                      color: line.startsWith('=====') || line.startsWith('---') ? '#165dff' : '#4e5969',
-                      fontWeight: line.startsWith('=====') || line.startsWith('---') ? '600' : '400'
-                    }}
-                  >
-                    {line || ' '}
-                  </Text>
-                ))}
+                {exportContent.split('\n').map((line, idx) => {
+                  const isSection =
+                    line.startsWith('====') ||
+                    line.startsWith('────') ||
+                    line.startsWith('▌')
+                  const isScreenshot = line.startsWith('[')
+                  return (
+                    <Text
+                      key={idx}
+                      className={
+                        isSection
+                          ? styles.exportSectionTitle
+                          : isScreenshot
+                          ? styles.exportScreenshotText
+                          : styles.exportText
+                      }
+                      style={{
+                        lineHeight: 1.8,
+                        color: isSection
+                          ? '#165dff'
+                          : isScreenshot
+                          ? '#f77234'
+                          : '#4e5969',
+                        fontWeight: isSection ? '600' : isScreenshot ? '500' : '400'
+                      }}
+                    >
+                      {line || ' '}
+                    </Text>
+                  )
+                })}
               </ScrollView>
             </View>
-            <View style={{ display: 'flex', gap: '16rpx', marginTop: '24rpx' }}>
+            <View className={styles.modalActions}>
               <Button className={styles.btnSecondary} onClick={() => setShowExport(false)}>
                 关闭
               </Button>

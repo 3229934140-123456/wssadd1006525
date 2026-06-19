@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
 import Taro, { useRouter, useDidShow } from '@tarojs/taro'
+import classnames from 'classnames'
 import { useAppStore } from '@/store'
-import { FollowCycleLabel, TrackingStatusLabel } from '@/types'
+import { FollowCycleLabel, TrackingStatusLabel, RepostStatus, RepostStatusLabel } from '@/types'
 import StatusTag from '@/components/StatusTag'
 import RepostCard from '@/components/RepostCard'
-import { formatDate } from '@/utils'
+import { formatDate, getRepostsInLast24h } from '@/utils'
 import styles from './index.module.scss'
 
 const ArticleDetailPage: React.FC = () => {
@@ -14,12 +15,29 @@ const ArticleDetailPage: React.FC = () => {
 
   const getArticleById = useAppStore((state) => state.getArticleById)
   const getRepostsByArticleId = useAppStore((state) => state.getRepostsByArticleId)
+  const setTrackingFilter = useAppStore((state) => state.setTrackingFilter)
 
   const article = useMemo(() => getArticleById(id || ''), [id, getArticleById])
   const reposts = useMemo(
     () => (id ? getRepostsByArticleId(id) : []),
     [id, getRepostsByArticleId]
   )
+
+  const trend = useMemo(() => {
+    const total = reposts.length
+    const new24h = getRepostsInLast24h(reposts)
+    const problems = reposts.filter((r) => r.status !== 'normal').length
+    const problemRate = total > 0 ? Math.round((problems / total) * 100) : 0
+
+    const problemBreakdown: Record<string, number> = {}
+    reposts.forEach((r) => {
+      if (r.status !== 'normal') {
+        problemBreakdown[r.status] = (problemBreakdown[r.status] || 0) + 1
+      }
+    })
+
+    return { total, new24h, problems, problemRate, problemBreakdown }
+  }, [reposts])
 
   const [refreshing, setRefreshing] = useState(false)
 
@@ -38,7 +56,13 @@ const ArticleDetailPage: React.FC = () => {
     }
   }
 
-  const handleViewAllReposts = () => {
+  const goTrackingWithFilter = (options?: { status?: RepostStatus }) => {
+    if (!article) return
+    setTrackingFilter({
+      articleId: article.id,
+      statusFilter: options?.status || 'all',
+      timeRange: 'all'
+    })
     Taro.switchTab({ url: '/pages/tracking/index' })
   }
 
@@ -106,6 +130,78 @@ const ArticleDetailPage: React.FC = () => {
         onRefresherRefresh={onPullDownRefresh}
       >
         <View className={styles.section}>
+          <View className={styles.sectionHeader}>
+            <Text className={styles.sectionTitle}>转载趋势</Text>
+            <Text
+              className={styles.viewAll}
+              onClick={() => goTrackingWithFilter()}
+            >
+              全部转载 →
+            </Text>
+          </View>
+
+          <View className={styles.trendGrid}>
+            <View className={styles.trendItem}>
+              <View className={styles.trendNumRow}>
+                <Text className={styles.trendNumNew}>{trend.new24h}</Text>
+                {trend.new24h > 0 && <View className={styles.upBadge}>NEW</View>}
+              </View>
+              <Text className={styles.trendLabel}>24小时内新增</Text>
+            </View>
+
+            <View className={styles.trendItem}>
+              <View className={styles.trendNumRow}>
+                <Text
+                  className={classnames(
+                    styles.trendNum,
+                    trend.problemRate >= 30 && styles.trendNumProblem,
+                    trend.problemRate > 0 && trend.problemRate < 30 && styles.trendNumWarning
+                  )}
+                >
+                  {trend.problemRate}%
+                </Text>
+              </View>
+              <Text className={styles.trendLabel}>问题转载占比</Text>
+            </View>
+
+            <View className={styles.trendItem}>
+              <View className={styles.trendNumRow}>
+                <ProgressMiniBar
+                  rate={trend.problemRate}
+                />
+              </View>
+              <Text className={styles.trendLabel}>
+                {trend.problems > 0 ? `${trend.problems}/${trend.total}问题` : '暂无问题'}
+              </Text>
+            </View>
+          </View>
+
+          {trend.problems > 0 && (
+            <View className={styles.problemBreakdown}>
+              <Text className={styles.breakdownHint}>点问题类型跳转追踪页：</Text>
+              <View className={styles.problemTagsRow}>
+                {Object.entries(trend.problemBreakdown).map(([status, count]) => (
+                  <View
+                    key={status}
+                    className={classnames(
+                      styles.problemTag,
+                      (status === 'exaggerated' || status === 'rewritten') && styles.problemTagWarn,
+                      status === 'unsigned' && styles.problemTagCaution
+                    )}
+                    onClick={() => goTrackingWithFilter({ status: status as RepostStatus })}
+                  >
+                    <Text className={styles.problemTagLabel}>
+                      {RepostStatusLabel[status as RepostStatus]}
+                    </Text>
+                    <Text className={styles.problemTagCount}>× {count}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+
+        <View className={styles.section}>
           <Text className={styles.sectionTitle}>稿件信息</Text>
           <View className={styles.infoRow}>
             <Text className={styles.infoLabel}>原文链接</Text>
@@ -129,20 +225,17 @@ const ArticleDetailPage: React.FC = () => {
           <View className={styles.repostsHeader}>
             <Text className={styles.repostsTitle}>最新转载</Text>
             {reposts.length > 3 && (
-              <Text className={styles.viewAll} onClick={handleViewAllReposts}>查看全部 →</Text>
+              <Text className={styles.viewAll} onClick={() => goTrackingWithFilter()}>
+                查看全部 →
+              </Text>
             )}
           </View>
           {reposts.length > 0 ? (
-            reposts.slice(0, 3).map(repost => (
+            reposts.slice(0, 3).map((repost) => (
               <RepostCard key={repost.id} repost={repost} />
             ))
           ) : (
-            <View style={{
-              padding: '48rpx 0',
-              textAlign: 'center',
-              color: '#86909C',
-              fontSize: '24rpx'
-            }}>
+            <View className={styles.emptyTip}>
               <Text>暂无转载记录</Text>
             </View>
           )}
@@ -154,6 +247,22 @@ const ArticleDetailPage: React.FC = () => {
         <Button className={styles.btnPrimary} onClick={handleToggleTracking}>
           {article.trackingStatus === 'tracking' ? '暂停追踪' : '继续追踪'}
         </Button>
+      </View>
+    </View>
+  )
+}
+
+const ProgressMiniBar: React.FC<{ rate: number }> = ({ rate }) => {
+  return (
+    <View style={{ display: 'flex', alignItems: 'center', gap: '8rpx' }}>
+      <View className={styles.miniBarOuter}>
+        <View
+          className={classnames(
+            styles.miniBarFill,
+            rate >= 30 ? styles.fillHigh : rate > 0 ? styles.fillMid : styles.fillLow
+          )}
+          style={{ width: `${Math.max(rate, 4)}%` }}
+        />
       </View>
     </View>
   )

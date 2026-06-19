@@ -1,13 +1,16 @@
-import React, { useState, useMemo } from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, Button, ScrollView } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { useAppStore } from '@/store'
 import EvidenceCard from '@/components/EvidenceCard'
 import EmptyState from '@/components/EmptyState'
+import { ProgressStatus } from '@/types'
+import { calcOverallProgress } from '@/utils'
 import styles from './index.module.scss'
 
 const EvidencePage: React.FC = () => {
   const storeEvidenceList = useAppStore((state) => state.evidenceList)
+  const getRepostsByIds = useAppStore((state) => state.getRepostsByIds)
 
   useDidShow(() => {
     console.log('[EvidencePage] didShow, evidence count:', storeEvidenceList.length)
@@ -15,14 +18,35 @@ const EvidencePage: React.FC = () => {
 
   const evidenceList = useMemo(() => {
     return [...storeEvidenceList].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      (a, b) =>
+        new Date(b.lastUpdatedAt).getTime() - new Date(a.lastUpdatedAt).getTime()
     )
   }, [storeEvidenceList])
 
   const stats = useMemo(() => {
     const totalReposts = evidenceList.reduce((sum, e) => sum + e.repostCount, 0)
-    return { total: evidenceList.length, totalReposts }
-  }, [evidenceList])
+
+    const allProgresses: ProgressStatus[] = []
+    let pendingCount = 0
+    evidenceList.forEach((e) => {
+      const reposts = getRepostsByIds(e.repostIds)
+      reposts.forEach((r) => {
+        const p = r.progress || 'pending'
+        allProgresses.push(p)
+        if (p === 'pending') pendingCount++
+      })
+    })
+
+    const globalOverall = calcOverallProgress(allProgresses)
+
+    return {
+      total: evidenceList.length,
+      totalReposts,
+      pendingCount,
+      resolvedCount: globalOverall.resolvedCount,
+      totalProgressCount: globalOverall.totalCount
+    }
+  }, [evidenceList, getRepostsByIds])
 
   const handleCreate = () => {
     Taro.showToast({
@@ -47,6 +71,14 @@ const EvidencePage: React.FC = () => {
             <Text className={styles.statNum}>{stats.totalReposts}</Text>
             <Text className={styles.statLabel}>涉及转载</Text>
           </View>
+          <View className={styles.statItem}>
+            <Text className={styles.statNumPending}>{stats.pendingCount}</Text>
+            <Text className={styles.statLabel}>待处理</Text>
+          </View>
+          <View className={styles.statItem}>
+            <Text className={styles.statNumSuccess}>{stats.resolvedCount}</Text>
+            <Text className={styles.statLabel}>已下架</Text>
+          </View>
         </View>
       </View>
 
@@ -59,16 +91,16 @@ const EvidencePage: React.FC = () => {
       <ScrollView scrollY className={styles.list}>
         {evidenceList.length > 0 ? (
           <>
-            <Text className={styles.sectionTitle}>全部证据包</Text>
-            {evidenceList.map(evidence => (
+            <Text className={styles.sectionTitle}>全部证据包（按最近更新排序）</Text>
+            {evidenceList.map((evidence) => (
               <EvidenceCard key={evidence.id} evidence={evidence} />
             ))}
           </>
         ) : (
           <View className={styles.emptyWrap}>
-            <EmptyState 
-              title="暂无证据包" 
-              description="在转载详情中点击「加入证据包」即可创建" 
+            <EmptyState
+              title="暂无证据包"
+              description="在转载详情中点击「加入证据包」即可创建"
             />
           </View>
         )}
@@ -78,3 +110,4 @@ const EvidencePage: React.FC = () => {
 }
 
 export default EvidencePage
+

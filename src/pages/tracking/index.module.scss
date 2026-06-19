@@ -37,7 +37,9 @@
 
 .statsRow {
   display: flex;
-  gap: $spacing-xl;
+  justify-content: space-between;
+  gap: $spacing-md;
+  flex-wrap: wrap;
   margin-top: $spacing-md;
 }
 
@@ -55,6 +57,13 @@
 .statNumDanger {
   font-size: $font-size-xxl;
   font-weight: $font-weight-bold;
+  color: #ffccc7;
+}
+
+.statNumWarning {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: #fff7e6;
 }
 
 .statLabel {
@@ -62,16 +71,136 @@
   opacity: 0.8;
 }
 
+.statsBreakdown {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.15);
+  flex-wrap: wrap;
+}
+
+.breakdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.breakdownNumUnsigned {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: #ffd666;
+}
+
+.breakdownNumExag {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: #ff9c6e;
+}
+
+.breakdownNumRew {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: #ffa39e;
+}
+
+.breakdownLabel {
+  font-size: $font-size-xs;
+  opacity: 0.85;
+}
+
+.breakdownAllGood {
+  font-size: $font-size-xs;
+  opacity: 0.8;
+}
+
+.filterPanel {
+  margin: 0 $page-padding;
+  margin-top: -24rpx;
+  margin-bottom: $spacing-sm;
+  padding: $spacing-md;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}
+
+.pickerRow {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.pickerBlock {
+  flex: 1;
+  min-width: 0;
+}
+
+.pickerLabel {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-xs;
+}
+
+.pickerBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm $spacing-md;
+  background-color: $color-bg-hover;
+  border-radius: $radius-md;
+  min-height: 72rpx;
+}
+
+.pickerText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  flex: 1;
+  @include text-ellipsis;
+  margin-right: $spacing-sm;
+}
+
+.pickerArrow {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  flex-shrink: 0;
+}
+
+.filterSummaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.filterSummary {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  flex: 1;
+  @include text-ellipsis;
+}
+
+.resetBtn {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+}
+
 .filterScroll {
   white-space: nowrap;
-  padding: $spacing-md $page-padding;
+  padding: $spacing-sm $page-padding;
   background-color: $color-bg-page;
 }
 
 .filterTab {
   @include button-reset;
   display: inline-flex;
-  height: 60rpx;
+  align-items: center;
+  height: 64rpx;
   padding: 0 $spacing-lg;
   margin-right: $spacing-md;
   background-color: $color-bg-card;
@@ -91,6 +220,12 @@
   }
 }
 
+.tabCount {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  margin-left: 4rpx;
+}
+
 .list {
   padding: 0 $page-padding;
   padding-top: $spacing-sm;
@@ -106,6 +241,12 @@
   color: $color-text-tertiary;
   margin-bottom: $spacing-md;
   padding-left: 4rpx;
+}
+
+.timeGroupCount {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  color: $color-text-tertiary;
 }
 
 .emptyWrap {

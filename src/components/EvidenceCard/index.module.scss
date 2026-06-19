@@ -15,10 +15,15 @@
 }
 
 .cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-md;
   margin-bottom: $spacing-sm;
 }
 
 .title {
+  flex: 1;
   font-size: $font-size-md;
   font-weight: $font-weight-semibold;
   color: $color-text-primary;
@@ -37,9 +42,35 @@
   @include text-ellipsis;
 }
 
+.progressLine {
+  margin-bottom: $spacing-md;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8rpx;
+  background-color: $color-bg-hover;
+  border-radius: 8rpx;
+  overflow: hidden;
+  margin-bottom: 8rpx;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #00b42a 0%, #165dff 100%);
+  border-radius: 8rpx;
+}
+
+.progressText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
 .statsRow {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: $spacing-lg;
   margin-bottom: $spacing-md;
   padding-bottom: $spacing-md;
@@ -72,6 +103,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
 }
 
 .createTime {
@@ -79,7 +112,16 @@
   color: $color-text-tertiary;
 }
 
-.arrow {
+.updateTime {
   font-size: $font-size-xs;
   color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.arrow {
+  display: block;
+  text-align: right;
+  font-size: $font-size-xs;
+  color: $color-primary;
+  margin-top: $spacing-sm;
 }

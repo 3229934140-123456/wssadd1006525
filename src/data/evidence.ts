@@ -10,6 +10,7 @@ export const mockEvidence: EvidencePackage[] = [
     repostCount: 2,
     problemTypes: ['unsigned', 'exaggerated'],
     createdAt: '2025-06-20T09:00:00',
+    lastUpdatedAt: '2025-06-20T10:30:00',
     description: '包含未署名转载和标题夸张的两篇转载文章证据'
   },
   {
@@ -21,6 +22,7 @@ export const mockEvidence: EvidencePackage[] = [
     repostCount: 1,
     problemTypes: ['exaggerated'],
     createdAt: '2025-06-19T15:00:00',
+    lastUpdatedAt: '2025-06-19T16:00:00',
     description: '某科技媒体断章取义，夸大AI医疗效果'
   },
   {
@@ -32,6 +34,7 @@ export const mockEvidence: EvidencePackage[] = [
     repostCount: 1,
     problemTypes: ['rewritten', 'unsigned'],
     createdAt: '2025-06-16T10:00:00',
+    lastUpdatedAt: '2025-06-17T09:00:00',
     description: '房产自媒体严重改写原文并散布不实信息'
   }
 ]

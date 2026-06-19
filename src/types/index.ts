@@ -4,6 +4,8 @@ export type RepostStatus = 'normal' | 'unsigned' | 'exaggerated' | 'rewritten'
 
 export type TrackingStatus = 'tracking' | 'expired' | 'paused'
 
+export type ProgressStatus = 'pending' | 'verifying' | 'contacted' | 'resolved' | 'closed'
+
 export interface Article {
   id: string
   title: string
@@ -33,6 +35,9 @@ export interface Repost {
   foundTime: string
   screenshot?: string
   notes?: string
+  progress?: ProgressStatus
+  handlingNotes?: string
+  progressUpdatedAt?: string
 }
 
 export interface EvidencePackage {
@@ -44,6 +49,7 @@ export interface EvidencePackage {
   repostCount: number
   problemTypes: RepostStatus[]
   createdAt: string
+  lastUpdatedAt: string
   description?: string
 }
 
@@ -64,4 +70,20 @@ export const TrackingStatusLabel: Record<TrackingStatus, string> = {
   tracking: '追踪中',
   expired: '已过期',
   paused: '已暂停'
+}
+
+export const ProgressStatusLabel: Record<ProgressStatus, string> = {
+  pending: '待处理',
+  verifying: '待核实',
+  contacted: '已联系',
+  resolved: '已下架',
+  closed: '已结案'
+}
+
+export const ProgressStatusColor: Record<ProgressStatus, string> = {
+  pending: '#86909C',
+  verifying: '#FF7D00',
+  contacted: '#165DFF',
+  resolved: '#00B42A',
+  closed: '#4E5969'
 }
