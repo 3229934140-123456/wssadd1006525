@@ -1,0 +1,113 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 40rpx;
+}
+
+.header {
+  padding: $spacing-lg $page-padding;
+  background: linear-gradient(135deg, #722ed1 0%, #9254de 100%);
+  color: $color-text-white;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.title {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+}
+
+.newBadge {
+  display: flex;
+  align-items: center;
+  height: 52rpx;
+  padding: 0 $spacing-md;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-button;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.statsRow {
+  display: flex;
+  gap: $spacing-xl;
+  margin-top: $spacing-md;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.statNum {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+}
+
+.statNumDanger {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+}
+
+.statLabel {
+  font-size: $font-size-sm;
+  opacity: 0.8;
+}
+
+.filterScroll {
+  white-space: nowrap;
+  padding: $spacing-md $page-padding;
+  background-color: $color-bg-page;
+}
+
+.filterTab {
+  @include button-reset;
+  display: inline-flex;
+  height: 60rpx;
+  padding: 0 $spacing-lg;
+  margin-right: $spacing-md;
+  background-color: $color-bg-card;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  box-shadow: $shadow-card;
+
+  &.active {
+    background-color: $color-primary;
+    color: $color-text-white;
+    font-weight: $font-weight-medium;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.list {
+  padding: 0 $page-padding;
+  padding-top: $spacing-sm;
+}
+
+.timeGroup {
+  margin-bottom: $spacing-lg;
+}
+
+.timeGroupTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-md;
+  padding-left: 4rpx;
+}
+
+.emptyWrap {
+  padding-top: $spacing-xl;
+}

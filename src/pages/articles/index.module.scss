@@ -1,0 +1,97 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 40rpx;
+}
+
+.header {
+  padding: $spacing-lg $page-padding;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.title {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+}
+
+.addBtn {
+  @include button-reset;
+  height: $button-height-md;
+  padding: 0 $spacing-lg;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-white;
+
+  &:active {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.statsRow {
+  display: flex;
+  gap: $spacing-xl;
+  margin-top: $spacing-md;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.statNum {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+}
+
+.statLabel {
+  font-size: $font-size-sm;
+  opacity: 0.8;
+}
+
+.filterTabs {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-md $page-padding;
+  background-color: $color-bg-page;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.filterTab {
+  @include button-reset;
+  height: 60rpx;
+  padding: 0 $spacing-lg;
+  background-color: transparent;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  &.active {
+    background-color: $color-primary;
+    color: $color-text-white;
+    font-weight: $font-weight-medium;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.list {
+  padding: 0 $page-padding;
+  padding-top: $spacing-sm;
+}

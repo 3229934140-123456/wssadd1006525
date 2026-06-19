@@ -1,0 +1,93 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 40rpx;
+}
+
+.header {
+  padding: $spacing-lg $page-padding;
+  background: linear-gradient(135deg, #f53f3f 0%, #ff7d00 100%);
+  color: $color-text-white;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.title {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+}
+
+.createBtn {
+  @include button-reset;
+  height: $button-height-md;
+  padding: 0 $spacing-lg;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-white;
+
+  &:active {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.statsRow {
+  display: flex;
+  gap: $spacing-xl;
+  margin-top: $spacing-md;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.statNum {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+}
+
+.statLabel {
+  font-size: $font-size-sm;
+  opacity: 0.8;
+}
+
+.tipCard {
+  margin: $spacing-md $page-padding;
+  padding: $spacing-md $spacing-lg;
+  background-color: #fff7e6;
+  border-radius: $radius-md;
+  border-left: 6rpx solid $color-warning;
+}
+
+.tipText {
+  font-size: $font-size-sm;
+  color: #ad4e00;
+  line-height: 1.6;
+}
+
+.list {
+  padding: 0 $page-padding;
+  padding-top: $spacing-sm;
+}
+
+.sectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  padding-left: 4rpx;
+}
+
+.emptyWrap {
+  padding-top: $spacing-xl;
+}

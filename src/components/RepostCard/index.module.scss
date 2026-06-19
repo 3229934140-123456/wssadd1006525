@@ -1,0 +1,122 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.sourceSite {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+}
+
+.articleTitle {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-sm;
+  display: block;
+  @include text-ellipsis;
+}
+
+.title {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  line-height: 1.5;
+  margin-bottom: $spacing-md;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.infoRow {
+  display: flex;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.infoDot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: $radius-round;
+  background-color: $color-error;
+}
+
+.dotGreen {
+  background-color: $color-success;
+}
+
+.infoText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-sm;
+}
+
+.similarityBar {
+  flex: 1;
+  height: 8rpx;
+  background-color: $color-bg-hover;
+  border-radius: $radius-round;
+  overflow: hidden;
+}
+
+.similarityFill {
+  height: 100%;
+  border-radius: $radius-round;
+  transition: width $transition-base;
+}
+
+.fillGreen {
+  background-color: $color-success;
+}
+
+.fillYellow {
+  background-color: $color-warning;
+}
+
+.fillRed {
+  background-color: $color-error;
+}
+
+.similarityText {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  min-width: 80rpx;
+  text-align: right;
+}
+
+.foundTime {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}

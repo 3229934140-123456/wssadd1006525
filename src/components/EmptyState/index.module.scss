@@ -1,0 +1,36 @@
+@use '@/styles/variables.scss' as *;
+
+.emptyWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl * 3 0;
+}
+
+.emptyIcon {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: $radius-round;
+  background-color: $color-bg-hover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-lg;
+}
+
+.iconText {
+  font-size: 56rpx;
+}
+
+.emptyTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.emptyDesc {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
